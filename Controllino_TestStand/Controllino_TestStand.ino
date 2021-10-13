@@ -2,9 +2,7 @@
 #include "variables.h"
 
 /*
-  CONTROLLINO MEGA - Control a motor with Relays 1, 2 3 and 4
-  
-  (Check https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library for the latest CONTROLLINO related software stuff.)
+  CONTROLLINO MEGA/MAXI - Control a motor with Relays 1, 2 3 and 4.
 */
 
 // Pins configuration
@@ -414,7 +412,6 @@ void parse_packet(int package_len)
   }
 }
 
-// the setup function runs once when you press reset (CONTROLLINO RST button) or connect the CONTROLLINO to the PC
 void setup() {
  // Configure the components of the system as relays and switches
   components[0].pin = RELAY_1;
@@ -432,7 +429,7 @@ void setup() {
   pinMode(RELAY_4, OUTPUT);
   pinMode(FUNC_MODE_PIN, INPUT);
   pinMode(TOP_SWITCH_PIN, INPUT);
-//  pinMode(BOTTOM_SWITCH_PIN, INPUT);
+  pinMode(BOTTOM_SWITCH_PIN, INPUT);
 
   // Set starting values for each pin and update the last setted values
   disable_outputs();
@@ -442,16 +439,15 @@ void setup() {
   components[5].value = (digitalRead(TOP_SWITCH_PIN) ? CLOSE : OPEN);
   components[6].value = (digitalRead(BOTTOM_SWITCH_PIN) ? CLOSE : OPEN);
 
-  // Starts serial port for debug
+  // Start the serial port
   Serial.begin(115200);
-//  Serial.println();
   Serial.setTimeout(200);
 
   // configurar timers 4 e 5
   
   pinMode(CONTROLLINO_D0, OUTPUT);
 
-  // initialize timer1 
+  // Initialize timer1 
   noInterrupts();           // disable all interrupts
   TCCR1A = 0;
   TCCR1B = 0;
@@ -460,7 +456,6 @@ void setup() {
   OCR1A = 12500;            // compare match register 16MHz/256/5Hz
   TCCR1B |= (1 << WGM12);   // CTC mode
   TCCR1B |= (1 << CS12);    // 256 prescaler
-//  TIMSK1 = TIMSK1 & (0xFE << OCIE1A);  // disable timer compare interrupt
   TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
   interrupts();             // enable all interrupts
   TIMSK1 = TIMSK1 & (0xFE << OCIE1A);  // disable timer compare interrupt
@@ -478,9 +473,8 @@ ISR(TIMER1_COMPA_vect)
   }
 }
 
-// the loop function runs over and over again forever
 void loop() {
-  // If UDP server is UP, wait for UPD packages
+  // If Serial is available wait to get a full command
   int available_len = Serial.available();
   if(available_len > 0){
     int len = Serial.readBytesUntil(0xFF, packet, 5);
@@ -510,6 +504,5 @@ void loop() {
   }
   components[4].value = (digitalRead(FUNC_MODE_PIN) ? CLOSE : OPEN);
   components[5].value = (digitalRead(TOP_SWITCH_PIN) ? CLOSE : OPEN);
-  components[6].value = (digitalRead(BOTTOM_SWITCH_PIN) ? CLOSE : OPEN);
-                   
+  components[6].value = (digitalRead(BOTTOM_SWITCH_PIN) ? CLOSE : OPEN);               
 }
