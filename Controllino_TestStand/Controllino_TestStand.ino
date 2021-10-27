@@ -86,19 +86,24 @@ CheckSum of values. Simple sum.
 */
 uint8_t check_sum(char *value, int len)
 {
-  int index = 0;
-  int check = 0;
+  unsigned int index = 0;
+  unsigned int check = 0;
+  unsigned int csbyte = 0;
 
   // Sum the received bytes and compare to the last byte received
   if(len > 1){
     for(index = 0; index < (len-1); index++){
       check = check + *(value+index);
     }
-    if(check == *(value+(len-1))){
+    csbyte = *(value+(len-1));
+    
+    if(check == csbyte){
+      return SUCCESS;
+    }else if((check & 0x00FF) == (csbyte & 0x00FF)){
       return SUCCESS;
     }else{
       return FAILURE;
-    }   
+    }
   }
   else{
     return FAILURE;
@@ -115,38 +120,105 @@ void parse_packet(int package_len)
   int comp = 0;
   int resp_status = 0;
   
-  if(package_len == 4)
+  if(package_len == 5)
   {
     comp = (unsigned char)(packet[0]) + 0;
     if(comp == ACTUATE_SIMPLE) // Open or close command for only one relay
     {
-      if(running_state == GENERIC) // Only work if it's in generic mode
+      if(running_state == GENERIC)
       {
-        for(ind = 0; ind < 4; ind++)
-        {
-          comp = (unsigned char)(packet[1]) + 0;
-          if(ind == (comp-1)){
+        // Check if it's not an optimized command
+        comp = (unsigned char)(packet[2]) + 0;
+        if(comp != 0){
+          // Only work if it's in generic mode
+          for(ind = 0; ind < 4; ind++)
+          {
             comp = (unsigned char)(packet[2]) + 0;
-            comute_relay(components[ind].pin, comp);
-            if(comp == CLOSE){
-              components[ind].value = CLOSE;
+            if(ind == (comp-1)){
+              comp = (unsigned char)(packet[3]) + 0;
+              comute_relay(components[ind].pin, comp);
+              if(comp == CLOSE){
+                components[ind].value = CLOSE;
+              }
+              else if(comp == OPEN){
+                components[ind].value = OPEN;
+              }
+              reply[0] = (unsigned char)(packet[0]);
+              reply[1] = ind + 1;
+              reply[2] = components[ind].value;
+              reply[3] = ACK;
+              reply[4] = reply[0] + reply[1] +  reply[2] + reply[3];
+              reply_len = 5;
+              break;
             }
-            else if(comp == OPEN){
-              components[ind].value = OPEN;
-            }         
+          }
+        }
+        else{
+          reply[0] = NACK;
+          reply_len = 1;
+        }
+      }
+      else
+      {
+        comp = (unsigned char)(packet[2]) + 0;
+        // Check if it's not a generic command
+        if(comp == 0){
+          // These only work in optimized mode
+          comp = (unsigned char)(packet[3]) + 0;
+          switch(comp){
+            case STOP: // Stop motor
+            disable_outputs();
             reply[0] = (unsigned char)(packet[0]);
-            reply[1] = ind + 1;
-            reply[2] = (unsigned char)(packet[2]);
-            reply[3] = 0x06;
-            reply[4] = reply[0] +  reply[1] +  reply[2] +  reply[3];
-            reply_len = 5;
+            reply[1] = STOP;
+            reply[2] = ACK;
+            reply[3] = reply[0] + reply[1] + reply[2];
+            reply_len = 4;
+            break;
+            
+            case GO_DOWN: // Move stand down
+            if(time_delay != 0){
+              timer_counter = 0;
+              go_down();
+              TIMSK1 |= (1 << OCIE1A);  // Enable timer compare interrupt
+            }
+            else{ // If specified time is 0s, then go down until receive stop or up command
+              go_down();
+            }
+            // Send ACK response
+            reply[0] = (unsigned char)(packet[0]);
+            reply[1] = GO_DOWN;
+            reply[2] = ACK;
+            reply[3] = reply[0] +  reply[1] +  reply[2];
+            reply_len = 4;
+            break;
+            
+            case GO_UP: // Move stand up
+            if(time_delay != 0){
+              timer_counter = 0;
+              go_up();
+              TIMSK1 |= (1 << OCIE1A);  // Enable timer compare interrupt
+            }
+            else{ // If specified time is 0s, then go up until receive stop or down command
+              go_up();
+            }
+            // Send ACK response
+            reply[0] = (unsigned char)(packet[0]);
+            reply[1] = GO_UP;
+            reply[2] = ACK;
+            reply[3] = reply[0] +  reply[1] +  reply[2];
+            reply_len = 4;
+            break;
+            
+            default: // If the command was not recognized, send NACK response
+            reply[0] = NACK;
+            reply_len = 1;
             break;
           }
         }
-      }
-      else{ // If it's not in generic mode, rensponse is NACK
-        reply[0] = NACK;
-        reply_len = 1;
+        else{
+          reply[0] = NACK;
+          reply_len = 1;
+        }
       }
     }
     else if(comp == ACTUATE_MULTIPLE) // Open or close command for multiple relays
@@ -155,9 +227,9 @@ void parse_packet(int package_len)
       {
         for(ind = 0; ind < 4; ind++)
         {
-          comp = (unsigned char)(packet[1]) + 0;
+          comp = (unsigned char)(packet[2]) + 0;
           if(bitRead(comp, ind)){
-            comp = (unsigned char)(packet[2]) + 0;
+            comp = (unsigned char)(packet[3]) + 0;
             comute_relay(components[ind].pin, bitRead(comp, ind));
             if(bitRead(comp, ind) == CLOSE){
               components[ind].value = CLOSE;
@@ -168,9 +240,9 @@ void parse_packet(int package_len)
           }
         }
         reply[0] = (unsigned char)(packet[0]);
-        reply[1] = ((unsigned char)(packet[1]) & 0x0F);
-        reply[2] = ((unsigned char)(packet[2]) & 0x0F);
-        reply[3] = 0x06;
+        reply[1] = ((unsigned char)(packet[2]) & 0x0F);
+        reply[2] = ((unsigned char)(packet[3]) & 0x0F);
+        reply[3] = ACK;
         reply[4] = reply[0] +  reply[1] +  reply[2] +  reply[3];
         reply_len = 5;
       }
@@ -182,13 +254,11 @@ void parse_packet(int package_len)
     else if(comp == MULTIPLE_REQUEST) // Request for multiple status on relays and switches
     {
       reply[0] = (unsigned char)(packet[0]);
-      reply[1] = ((unsigned char)(packet[1]) & 0x0F);
-      reply[2] = ((unsigned char)(packet[2]) & 0x07);
+      reply[1] = ((unsigned char)(packet[2]) & 0x0F);
+      reply[2] = ((unsigned char)(packet[3]) & 0x07);
 
       // Get relays status
-      reply[3] = 0;
-      comp = (unsigned char)(packet[1]) + 0;
-      
+      reply[3] = 0;      
       for(ind = 0; ind < 4; ind++)
       {
         reply[3] = (reply[3] | (components[ind].value << ind));
@@ -196,7 +266,6 @@ void parse_packet(int package_len)
       
       // Get switches status
       reply[4] = 0;
-      comp = (unsigned char)(packet[2]) + 0;
       for(ind = 0; ind < 3; ind++)
       {
         reply[4] = (reply[4] | (components[ind+4].value << ind));
@@ -211,13 +280,11 @@ void parse_packet(int package_len)
       comp = (unsigned char)(packet[1]) + 0;
       if(comp == SET_RELAYS_DELAY) // Configure a new fixed time for optimized mode
       {
-        int new_delay = ((unsigned char)(packet[2]) << 0x08) | (unsigned char)(packet[3]);
-        if(new_delay > 20000){ // 20 seconds is the maximum time for timer configuration
-          new_delay = 20000;
-        }
+        unsigned int new_delay = ((unsigned char)(packet[2]) << 0x08) | (unsigned char)(packet[3]);
         
         disable_outputs();
-        time_delay = new_delay / 200; // Update fixed timing
+        time_delay = new_delay; // Update fixed timing
+        
         if(time_delay == 0){ // If time was set to 0s, it's because the continuous mode is selected, no timer is used in this mode
           disable_outputs();
           TIMSK1 = TIMSK1 & (0xFE << OCIE1A); // Disable timer compare interrupt
@@ -225,14 +292,15 @@ void parse_packet(int package_len)
         // Send response
         reply[0] = (unsigned char)(packet[0]);
         reply[1] = SET_RELAYS_DELAY;
-        reply[2] = ((time_delay >> 0x08) & (0xFF));
-        reply[3] = (time_delay & 0xFF);
+        reply[2] = ((new_delay >> 0x08) & (0xFF));
+        reply[3] = (new_delay & 0xFF);
         reply[4] = ACK;
-        reply_len = 5;
+        reply[5] = char((reply[0] + reply[1] +  reply[2] + reply[3] + reply[4]) & 0xFF);
+        reply_len = 6;
       }
       else if(comp == CHANGE_CODE) // Change working mode
       {
-        comp = (unsigned char)(packet[2]) + 0;
+        comp = (unsigned char)(packet[3]) + 0;
         switch(comp){
           case GENERIC_CODE: // Run generic code
           running_state = GENERIC;
@@ -267,73 +335,9 @@ void parse_packet(int package_len)
         reply_len = 1;
       }
     }
-  }
-  else if(package_len == 3)
-  {
-    comp = (unsigned char)(packet[0]) + 0;
-    if(comp == ACTUATE_SIMPLE) // Command to change relays status
-    {
-      if(running_state == OPTIMIZED) // These only work in optimized mode
-      {
-        comp = (unsigned char)(packet[1]) + 0;
-        switch(comp){
-          case STOP: // Stop motor
-          disable_outputs();
-          reply[0] = (unsigned char)(packet[0]);
-          reply[1] = STOP;
-          reply[2] = ACK;
-          reply[3] = reply[0] +  reply[1] +  reply[2];
-          reply_len = 4;
-          break;
-          
-          case GO_DOWN: // Move stand down
-          if(time_delay != 0){
-            timer_counter = 0;
-            TIMSK1 |= (1 << OCIE1A);  // Enable timer compare interrupt
-            go_down();
-          }
-          else{ // If specified time is 0s, then go down until receive stop or up command
-            go_down();
-          }
-          // Send ACK response
-          reply[0] = (unsigned char)(packet[0]);
-          reply[1] = GO_DOWN;
-          reply[2] = ACK;
-          reply[3] = reply[0] +  reply[1] +  reply[2];
-          reply_len = 4;
-          break;
-          
-          case GO_UP: // Move stand up
-          if(time_delay != 0){
-            timer_counter = 0;
-            TIMSK1 |= (1 << OCIE1A);  // Enable timer compare interrupt
-            go_up();
-          }
-          else{ // If specified time is 0s, then go up until receive stop or down command
-            go_up();
-          }
-          // Send ACK response
-          reply[0] = (unsigned char)(packet[0]);
-          reply[1] = GO_UP;
-          reply[2] = ACK;
-          reply[3] = reply[0] +  reply[1] +  reply[2];
-          reply_len = 4;
-          break;
-          
-          default: // If the command was not recognized, send NACK response
-          reply[0] = NACK;
-          reply_len = 1;
-          break;
-        }
-      }
-      else{ // If code is working in generic mode, send NACK response
-        reply[0] = NACK;
-        reply_len = 1;
-      }
-    }
     else if(comp == SIMPLE_REQUEST) // Request for only a component status
     {
-      comp = (unsigned char)(packet[1]) + 0;
+      comp = (unsigned char)(packet[3]) + 0;
       switch(comp){
         case CONNECTION: // Connection status
         reply[0] = (unsigned char)(packet[0]);
@@ -443,19 +447,16 @@ void setup() {
   Serial.begin(115200);
   Serial.setTimeout(200);
 
-  // configurar timers 4 e 5
-  
-  pinMode(CONTROLLINO_D0, OUTPUT);
-
   // Initialize timer1 
   noInterrupts();           // disable all interrupts
   TCCR1A = 0;
   TCCR1B = 0;
   TCNT1  = 0;
 
-  OCR1A = 12500;            // compare match register 16MHz/256/5Hz
+  OCR1A = 250;            // compare match register 16MHz/64/1000Hz ->1ms
   TCCR1B |= (1 << WGM12);   // CTC mode
-  TCCR1B |= (1 << CS12);    // 256 prescaler
+  TCCR1B |= (1 << CS11);    // 64 prescaler
+  TCCR1B |= (1 << CS10);
   TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
   interrupts();             // enable all interrupts
   TIMSK1 = TIMSK1 & (0xFE << OCIE1A);  // disable timer compare interrupt
@@ -477,24 +478,15 @@ void loop() {
   // If Serial is available wait to get a full command
   int available_len = Serial.available();
   if(available_len > 0){
-    int len = Serial.readBytesUntil(0xFF, packet, 5);
-    if((unsigned char)(packet[len-1]) == 0xFF){
-      len = len - 1;
-    }
+    int len = Serial.readBytes(packet, 5);
+
     if(check_sum(packet, len) == SUCCESS){
       parse_packet(len);
       // Send response packet
       Serial.write(reply, reply_len);
       Serial.flush();
     }
-    else if((len == 4) && ((unsigned char)(packet[0]) == PROGRAM_SETTINGS) && ((unsigned char)(packet[1]) == SET_RELAYS_DELAY)){
-      // If checksum failed, it might be a set time command for fixed time mode
-      parse_packet(len);
-      
-      // Send response packet
-      Serial.write(reply, reply_len);
-      Serial.flush();
-    }else{
+    else{
       // Send response packet
       reply[0] = NACK;
       reply_len = 1;
