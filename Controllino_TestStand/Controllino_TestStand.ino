@@ -176,15 +176,12 @@ void parse_packet(int package_len)
             break;
             
             case GO_DOWN: // Move stand down
-            if(time_delay_1 != 0){
-              timer_counter_1 = 0;
+            if(time_delay != 0){
+              timer_counter = 0;
               go_down();
               TIMSK1 |= (1 << OCIE1A);  // Enable timer compare interrupt
-            }else if(time_delay_2 != 0){
-              timer_counter_2 = 0;
-              go_down();
-              TIMSK2 |= (1 << OCIE2A);  // Enable timer compare interrupt
-            }else{ // If specified time is 0s, then go down until receive stop or up command
+            }
+            else{ // If specified time is 0s, then go down until receive stop or up command
               go_down();
             }
             // Send ACK response
@@ -196,15 +193,12 @@ void parse_packet(int package_len)
             break;
             
             case GO_UP: // Move stand up
-            if(time_delay_1 != 0){
-              timer_counter_1 = 0;
+            if(time_delay != 0){
+              timer_counter = 0;
               go_up();
               TIMSK1 |= (1 << OCIE1A);  // Enable timer compare interrupt
-            }else if(time_delay_2 != 0){
-              timer_counter_2 = 0;
-              go_up();
-              TIMSK2 |= (1 << OCIE2A);  // Enable timer compare interrupt
-            }else{ // If specified time is 0s, then go up until receive stop or down command
+            }
+            else{ // If specified time is 0s, then go up until receive stop or down command
               go_up();
             }
             // Send ACK response
@@ -289,12 +283,11 @@ void parse_packet(int package_len)
         unsigned int new_delay = ((unsigned char)(packet[2]) << 0x08) | (unsigned char)(packet[3]);
         
         disable_outputs();
-        time_delay_1 = new_delay / 200; // Update fixed timing
-        time_delay_2 = new_delay - (time_delay_1 * 200);
+        time_delay = new_delay; // Update fixed timing
         
-        if(time_delay_1 == 0){ // If time was set to 0s, it's because the continuous mode is selected, no timer is used in this mode
-          TIMSK1 = (TIMSK1 & 0xFD);  // Disable timer 1 compare interrupt
-          TIMSK2 = (TIMSK2 & 0xFD);  // Disable timer 2 compare interrupt
+        if(time_delay == 0){ // If time was set to 0s, it's because the continuous mode is selected, no timer is used in this mode
+          disable_outputs();
+          TIMSK1 = TIMSK1 & (0xFE << OCIE1A); // Disable timer compare interrupt
         }
         // Send response
         reply[0] = (unsigned char)(packet[0]);
@@ -454,68 +447,30 @@ void setup() {
   Serial.begin(115200);
   Serial.setTimeout(200);
 
-  // configurar timers 4 e 5
-  
-  pinMode(CONTROLLINO_D0, OUTPUT);
-
-  noInterrupts();           // Disable all interrupts
-  
-  // Initialize timer1
+  // Initialize timer1 
+  noInterrupts();           // disable all interrupts
   TCCR1A = 0;
   TCCR1B = 0;
   TCNT1  = 0;
 
-  OCR1A = 12500;            // Compare match register 16MHz/256/5Hz
+  OCR1A = 250;            // compare match register 16MHz/64/1000Hz ->1ms
   TCCR1B |= (1 << WGM12);   // CTC mode
-  TCCR1B |= (1 << CS12);    // 256 prescaler
-  TIMSK1 |= (1 << OCIE1A);  // Enable timer compare interrupt
-  
-  // Initialize timer2
-  TCCR2A = 0;
-  TCCR2B = 0;
-  TCNT2  = 0;
-
-  OCR2A = 125;              // Compare match register 8MHz/64/1000Hz
-  TCCR2B |= (1 << WGM22);   // CTC mode
-  
-  TCCR2B |= (1 << CS22);    // 64 prescaler
-  
-  TIMSK2 |= (1 << OCIE2A);  // Enable timer compare interrupt
-
-  interrupts(); // Enable all interrupts
-  TIMSK2 = (TIMSK2 & 0xFD);  // Disable timer 2 compare interrupt
-  TIMSK1 = (TIMSK1 & 0xFD);  // Disable timer 1 compare interrupt
+  TCCR1B |= (1 << CS11);    // 64 prescaler
+  TCCR1B |= (1 << CS10);
+  TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
+  interrupts();             // enable all interrupts
+  TIMSK1 = TIMSK1 & (0xFE << OCIE1A);  // disable timer compare interrupt
 }
 
 /*
-Timer 1 callback for fixed time operating mode.
-Timer 1 enters the callback every 200ms, when it is activated.
+Timer callback for fixed time operating mode.
 */
 ISR(TIMER1_COMPA_vect)
 {
-  timer_counter_1 = timer_counter_1 + 1;
-  if(timer_counter_1 >= time_delay_1){
-    TIMSK1 = (TIMSK1 & 0xFD);  // Disable timer 1 compare interrupt
-    if(time_delay_2 == 0){
-      disable_outputs();
-    }
-    else{
-      timer_counter_2 = 0;
-      TIMSK2 |= (1 << OCIE2A);  // enable timer compare interrupt
-    }
-  }
-}
-
-/*
-Timer 2 callback for fixed time operating mode.
-Timer 2 enters the callback every 1ms, when it is activated.
-*/
-ISR(TIMER2_COMPA_vect)
-{
-  timer_counter_2 = timer_counter_2 + 1;
-  if(timer_counter_2 >= time_delay_2){
-    TIMSK2 = (TIMSK2 & 0xFD);  // Disable timer 2 compare interrupt
+  timer_counter = timer_counter + 1;
+  if(timer_counter >= time_delay){
     disable_outputs();
+    TIMSK1 = TIMSK1 & (0xFE << OCIE1A); // Disable timer
   }
 }
 

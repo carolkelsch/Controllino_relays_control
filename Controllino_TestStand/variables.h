@@ -33,8 +33,6 @@ char reply[20] = "Packet received!";
 int reply_len = 0;
 
 // Delay for fixed time mode
-int time_delay_1 = 5;
-int time_delay_2 = 0;
+int time_delay = 10;
 
-int timer_counter_1 = 0;
-int timer_counter_2 = 0;
+int timer_counter = 0;

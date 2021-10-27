@@ -34,11 +34,8 @@ There are 2 different working modes.
 
 - **Generic**: it enables you to open and close individually each relay.
 - **Optimized**: this mode was optimized for a specific functionality. It configures the 4 relays as 2 pairs. The relays 1 and 3 are activated to enable a motor to roll in a direction and the relays 2 and 4 enables the motor to roll in the oposite direction.
-1 and 3 respond to the UP command, and 2 and 4 to the DOWN command. Optimized has also a time configuration. The time can be configured from 0 to 20000 (in milliseconds). If set to 0, the states of the relays are totally dependent of the commands. If you set the command UP, it will stay activated until you give the STOP or DOWN command.
+1 and 3 respond to the UP command, and 2 and 4 to the DOWN command. Optimized has also a time configuration. The time can be configured from 0 to 65535 (in milliseconds). If set to 0, the states of the relays are totally dependent of the commands. If you set the command UP, it will stay activated until you give the STOP or DOWN command.
 If the time set is different than 0, then the commands UP and DOWN will activate the relays, and start a timer, with the specified time. When the timer is triggered the relays will automatically receive STOP command. If another UP or DOWN message is received before the timer get triggered, then the timer is restarted.
-
-
-**NOTE:** Due to the timer constraints, the timming mode uses a fixed timer of 200 ms, and multiplies it according to the configured time. So if a time for less than 200 ms was configured, the board will just consider 0 s. If a time of 15,9 s was configured, then the board will compute the time for 15,8 s.
 
 # Setting commands for generic working mode
 | Command  |  Function  |
@@ -68,10 +65,9 @@ The last command can change the state of multiple relays, the structure of the c
 | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- |
 | - | - | - | - | 1 (Open) / 0 (Close) | 1 (Open) / 0 (Close) | 1 (Open) / 0 (Close) | 1 (Open) / 0 (Close) |
 
-- **ACK**: 0x06, acknowledge byte in ASCII;
 - **CS**: simple check sum, aquired by summing all the previous bytes os the message.
 
-The response for the setting commands are the first 3 bytes of the command, plus a 0x06 byte (ACK) and the new CheckSum.
+The response for the setting commands are the first, third and fourth bytes of the command, plus a 0x06 byte (ACK) and the new CheckSum.
 
 # Setting commands for optimized working mode
 | Command  |  Function  |
@@ -80,7 +76,7 @@ The response for the setting commands are the first 3 bytes of the command, plus
 |  A0 00 00 01 A1 |  DOWN |
 |  A0 00 00 02 A2 |  UP |
 
-The response for the commands are the first 2 bytes of the command, plus a 0x06 byte (ACK) and the new CheckSum.
+The response for the commands are the first and third bytes of the command, plus a 0x06 byte (ACK) and the new CheckSum.
 
 # Getting commands for both modes
 | Command  |  Function  |
@@ -111,7 +107,7 @@ The last command can aquire the state of multiple relays and inputs, the structu
 
 - **CS**: simple check sum, aquired by summing all the previous bytes os the message.
 
-The response for the simple getting commands are the first 2 bytes from the request, plus a byte for the status 0x01 if opened or 0x00 for closed (0x00 in case of connection), plus 0x06 byte (ACK) and the new CheckSum.
+The response for the simple getting commands are the first and fourth bytes from the request, plus a byte for the status 0x01 if opened or 0x00 for closed (0x00 in case of connection), plus 0x06 byte (ACK) and the new CheckSum.
 
 The response to the multiple status request is:
 - **0B**: identificator byte;
@@ -131,8 +127,8 @@ The response to the multiple status request is:
 
 The **X#** bytes are the time in milliseconds for the optimized mode. The time is passed in two bytes, being the left the most significant one. The **CS*** byte is the last byte from simple CheckSum of the message.
 
-The command for time configuration, has no CheckSum byte. The response for this command are the first 2 bytes, plus 2 bytes for the number of 200 ms interrupts the board will run before opening the relays.
-The response for the mode commands are the first 3 bytes of the command, plus a 0x06 byte (ACK) and the new CheckSum.
+The command for time configuration is the 4 first bytes plus a 0x06 (ACK) and a new CheckSum byte. If the CheckSum is greater than one byte, then only the least significant one is used.
+The response for the mode commands are the first, second and fourth bytes of the command, plus a 0x06 byte (ACK) and the new CheckSum.
 
 # Response to unknown commands
 If you send a specific optimized mode command, when the program is on generic mode, or the other way around, the Controllino will answer with a 0x15 byte (negative aknowledge in ASCII). If you send a valid command but with wrong CS, the answer will be the same.
