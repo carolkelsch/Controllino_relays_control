@@ -67,7 +67,7 @@ The last command can change the state of multiple relays, the structure of the c
 
 - **CS**: simple check sum, aquired by summing all the previous bytes os the message.
 
-The response for the setting commands are the first, third and fourth bytes of the command, plus a 0x06 byte (ACK) and the new CheckSum.
+The response for the setting commands are the first 4 bytes of the command, plus a 0x06 byte (ACK) and the new CheckSum.
 
 # Setting commands for optimized working mode
 | Command  |  Function  |
@@ -76,7 +76,7 @@ The response for the setting commands are the first, third and fourth bytes of t
 |  A0 00 00 01 A1 |  DOWN |
 |  A0 00 00 02 A2 |  UP |
 
-The response for the commands are the first and third bytes of the command, plus a 0x06 byte (ACK) and the new CheckSum.
+The response for the commands are the first 4 bytes of the command, plus a 0x06 byte (ACK) and the new CheckSum.
 
 # Getting commands for both modes
 | Command  |  Function  |
@@ -93,6 +93,7 @@ The response for the commands are the first and third bytes of the command, plus
 
 The last command can aquire the state of multiple relays and inputs, the structure of the command is:
 - **0B**: identificator byte;
+- **00**: null byte;
 - **R#**: relays mask byte, if bit is set to 1, then the status of the respective relay will be returned;
 
 | Bit 7 | Bit 6 | Bit 5 | Bit 4 | Bit 3 | Bit 2 | Bit 1 | Bit 0 |
@@ -107,12 +108,9 @@ The last command can aquire the state of multiple relays and inputs, the structu
 
 - **CS**: simple check sum, aquired by summing all the previous bytes os the message.
 
-The response for the simple getting commands are the first and fourth bytes from the request, plus a byte for the status 0x01 if opened or 0x00 for closed (0x00 in case of connection), plus 0x06 byte (ACK) and the new CheckSum.
+The response for the simple getting commands are the first 4 bytes from the request, plus a byte for the status 0x01 if opened or 0x00 for closed (0x00 in case of connection), plus 0x06 byte (ACK) and the new CheckSum.
 
-The response to the multiple status request is:
-- **0B**: identificator byte;
-- **R#**: relays mask byte, if bit is set to 1, then the status of the respective relay will be returned;
-- **S#**: switch (or inputs) mask byte, if bit is set to 1, then the status of the respective switch will be returned;
+The response to the multiple status are the first 4 bytes from the request, followed by:
 - **RS#**: relay status mask, if bit is set to 1 then relay is opened, if bit is set to 0 then relay is closed. The bit status for each relay respect the same position as the relay mask;
 - **SS#**: switch (or input) status mask, if bit is set to 1 then input is low (or opened), if bit is set to 0 then input is high (or closed). The bit status for each switch respect the same position as the switch mask;
 - **ACK**: 0x06, acknowledge byte in ASCII;
@@ -127,8 +125,7 @@ The response to the multiple status request is:
 
 The **X#** bytes are the time in milliseconds for the optimized mode. The time is passed in two bytes, being the left the most significant one. The **CS*** byte is the last byte from simple CheckSum of the message.
 
-The command for time configuration is the 4 first bytes plus a 0x06 (ACK) and a new CheckSum byte. If the CheckSum is greater than one byte, then only the least significant one is used.
-The response for the mode commands are the first, second and fourth bytes of the command, plus a 0x06 byte (ACK) and the new CheckSum.
+The command for configuration commands are the 4 first bytes plus a 0x06 (ACK) and a new CheckSum byte. If the CheckSum is greater than one byte, then only the least significant one is used.
 
 # Response to unknown commands
 If you send a specific optimized mode command, when the program is on generic mode, or the other way around, the Controllino will answer with a 0x15 byte (negative aknowledge in ASCII). If you send a valid command but with wrong CS, the answer will be the same.
