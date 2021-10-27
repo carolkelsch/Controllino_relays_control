@@ -43,15 +43,15 @@ If the time set is different than 0, then the commands UP and DOWN will activate
 # Setting commands for generic working mode
 | Command  |  Function  |
 | --------- | --------- |
-|  A0 01 01 A2 |  Open relay 1 |
-|  A0 01 00 A1 |  Close relay 1 |
-|  A0 02 01 A3 |  Open relay 2 |
-|  A0 02 00 A2 |  Close relay 2 |
-|  A0 03 01 A4 |  Open relay 3 |
-|  A0 03 00 A3 |  Close relay 3 |
-|  A0 04 01 A5 |  Open relay 4 |
-|  A0 04 00 A4 |  Close relay 4 |
-|  0A R# C# CS |  Open or close multiple relays |
+|  A0 00 01 01 A2 |  Open relay 1 |
+|  A0 00 01 00 A1 |  Close relay 1 |
+|  A0 00 02 01 A3 |  Open relay 2 |
+|  A0 00 02 00 A2 |  Close relay 2 |
+|  A0 00 03 01 A4 |  Open relay 3 |
+|  A0 00 03 00 A3 |  Close relay 3 |
+|  A0 00 04 01 A5 |  Open relay 4 |
+|  A0 00 04 00 A4 |  Close relay 4 |
+|  0A 00 R# C# CS |  Open or close multiple relays |
 
 The last command can change the state of multiple relays, the structure of the command is:
 - **0A**: identificator byte;
@@ -76,24 +76,24 @@ The response for the setting commands are the first 3 bytes of the command, plus
 # Setting commands for optimized working mode
 | Command  |  Function  |
 | --------- | --------- |
-|  A0 00 A0 |  STOP |
-|  A0 01 A1 |  DOWN |
-|  A0 02 A2 |  UP |
+|  A0 00 00 00 A0 |  STOP |
+|  A0 00 00 01 A1 |  DOWN |
+|  A0 00 00 02 A2 |  UP |
 
 The response for the commands are the first 2 bytes of the command, plus a 0x06 byte (ACK) and the new CheckSum.
 
 # Getting commands for both modes
 | Command  |  Function  |
 | --------- | --------- |
-|  B0 00 B0 |  Status of connection |
-|  B0 01 B1 |  Status of relay 1 |
-|  B0 02 B1 |  Status of relay 2 |
-|  B0 03 B1 |  Status of relay 3 |
-|  B0 04 B1 |  Status of relay 4 |
-|  B0 05 B1 |  Status of functional mode |
-|  B0 06 B1 |  Status of top end switch |
-|  B0 07 B1 |  Status of bottom end switch |
-|  0B R# S# CS |  Request for multiple status |
+|  B0 00 00 00 B0 |  Status of connection |
+|  B0 00 00 01 B1 |  Status of relay 1 |
+|  B0 00 00 02 B1 |  Status of relay 2 |
+|  B0 00 00 03 B1 |  Status of relay 3 |
+|  B0 00 00 04 B1 |  Status of relay 4 |
+|  B0 00 00 05 B1 |  Status of functional mode |
+|  B0 00 00 06 B1 |  Status of top end switch |
+|  B0 00 00 07 B1 |  Status of bottom end switch |
+|  0B 00 R# S# CS |  Request for multiple status |
 
 The last command can aquire the state of multiple relays and inputs, the structure of the command is:
 - **0B**: identificator byte;
@@ -125,11 +125,11 @@ The response to the multiple status request is:
 # Configuration commands accepted for both modes
 | Command  |  Function  |
 | --------- | --------- |
-|  C0 00 X# X# |  Set delay for relays (no CS byte) |
-|  C0 01 00 C1 |  Go to generic mode |
-|  C0 01 01 C2 |  Go to optimized mode |
+|  C0 00 X# X# CS* |  Set delay for relays |
+|  C0 01 00 00 C1 |  Go to generic mode |
+|  C0 01 00 01 C2 |  Go to optimized mode |
 
-The **X#** bytes are the time in milliseconds for the optimized mode. The time is passed in two bytes, being the left the most significant one.
+The **X#** bytes are the time in milliseconds for the optimized mode. The time is passed in two bytes, being the left the most significant one. The **CS*** byte is the last byte from simple CheckSum of the message.
 
 The command for time configuration, has no CheckSum byte. The response for this command are the first 2 bytes, plus 2 bytes for the number of 200 ms interrupts the board will run before opening the relays.
 The response for the mode commands are the first 3 bytes of the command, plus a 0x06 byte (ACK) and the new CheckSum.
