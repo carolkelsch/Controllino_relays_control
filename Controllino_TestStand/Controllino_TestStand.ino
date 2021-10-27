@@ -144,11 +144,12 @@ void parse_packet(int package_len)
                 components[ind].value = OPEN;
               }
               reply[0] = (unsigned char)(packet[0]);
-              reply[1] = ind + 1;
-              reply[2] = components[ind].value;
-              reply[3] = ACK;
-              reply[4] = reply[0] + reply[1] +  reply[2] + reply[3];
-              reply_len = 5;
+              reply[1] = 0;
+              reply[2] = ind + 1;
+              reply[3] = components[ind].value;
+              reply[4] = ACK;
+              reply[5] = reply[0] + reply[1] +  reply[2] + reply[3] + reply[4];
+              reply_len = 6;
               break;
             }
           }
@@ -169,10 +170,12 @@ void parse_packet(int package_len)
             case STOP: // Stop motor
             disable_outputs();
             reply[0] = (unsigned char)(packet[0]);
-            reply[1] = STOP;
-            reply[2] = ACK;
-            reply[3] = reply[0] + reply[1] + reply[2];
-            reply_len = 4;
+            reply[1] = 0;
+            reply[2] = 0;
+            reply[3] = STOP;
+            reply[4] = ACK;
+            reply[5] = reply[0] + reply[1] + reply[2] + reply[3] + reply[4];
+            reply_len = 6;
             break;
             
             case GO_DOWN: // Move stand down
@@ -186,10 +189,12 @@ void parse_packet(int package_len)
             }
             // Send ACK response
             reply[0] = (unsigned char)(packet[0]);
-            reply[1] = GO_DOWN;
-            reply[2] = ACK;
-            reply[3] = reply[0] +  reply[1] +  reply[2];
-            reply_len = 4;
+            reply[1] = 0;
+            reply[2] = 0;
+            reply[3] = GO_DOWN;
+            reply[4] = ACK;
+            reply[5] = reply[0] +  reply[1] +  reply[2] + reply[3] +  reply[4];
+            reply_len = 6;
             break;
             
             case GO_UP: // Move stand up
@@ -203,10 +208,12 @@ void parse_packet(int package_len)
             }
             // Send ACK response
             reply[0] = (unsigned char)(packet[0]);
-            reply[1] = GO_UP;
-            reply[2] = ACK;
-            reply[3] = reply[0] +  reply[1] +  reply[2];
-            reply_len = 4;
+            reply[1] = 0;
+            reply[2] = 0;
+            reply[3] = GO_UP;
+            reply[4] = ACK;
+            reply[5] = reply[0] +  reply[1] +  reply[2] + reply[3] +  reply[4];
+            reply_len = 6;
             break;
             
             default: // If the command was not recognized, send NACK response
@@ -240,11 +247,12 @@ void parse_packet(int package_len)
           }
         }
         reply[0] = (unsigned char)(packet[0]);
-        reply[1] = ((unsigned char)(packet[2]) & 0x0F);
-        reply[2] = ((unsigned char)(packet[3]) & 0x0F);
-        reply[3] = ACK;
-        reply[4] = reply[0] +  reply[1] +  reply[2] +  reply[3];
-        reply_len = 5;
+        reply[1] = 0;
+        reply[2] = ((unsigned char)(packet[2]) & 0x0F);
+        reply[3] = ((unsigned char)(packet[3]) & 0x0F);
+        reply[4] = ACK;
+        reply[5] = reply[0] +  reply[1] + reply[2] +  reply[3] + reply[4];
+        reply_len = 6;
       }
       else{ // If it's not in generic mode, rensponse is NACK
         reply[0] = NACK;
@@ -254,26 +262,27 @@ void parse_packet(int package_len)
     else if(comp == MULTIPLE_REQUEST) // Request for multiple status on relays and switches
     {
       reply[0] = (unsigned char)(packet[0]);
-      reply[1] = ((unsigned char)(packet[2]) & 0x0F);
-      reply[2] = ((unsigned char)(packet[3]) & 0x07);
+      reply[1] = 0;
+      reply[2] = ((unsigned char)(packet[2]) & 0x0F);
+      reply[3] = ((unsigned char)(packet[3]) & 0x07);
 
       // Get relays status
-      reply[3] = 0;      
+      reply[4] = 0;      
       for(ind = 0; ind < 4; ind++)
       {
-        reply[3] = (reply[3] | (components[ind].value << ind));
+        reply[4] = (reply[4] | (components[ind].value << ind));
       }
       
       // Get switches status
-      reply[4] = 0;
+      reply[5] = 0;
       for(ind = 0; ind < 3; ind++)
       {
-        reply[4] = (reply[4] | (components[ind+4].value << ind));
+        reply[5] = (reply[5] | (components[ind+4].value << ind));
       }
       
-      reply[5] = ACK;
-      reply[6] = reply[0] + reply[1] + reply[2] + reply[3] + reply[4] + reply[5]; // Simple CS
-      reply_len = 7;
+      reply[6] = ACK;
+      reply[7] = reply[0] + reply[1] + reply[2] + reply[3] + reply[4] + reply[5] + reply[6]; // Simple CS
+      reply_len = 8;
     }
     else if(comp == PROGRAM_SETTINGS)
     {
@@ -308,10 +317,11 @@ void parse_packet(int package_len)
           // Send response
           reply[0] = (unsigned char)(packet[0]);
           reply[1] = CHANGE_CODE;
-          reply[2] = GENERIC_CODE;
-          reply[3] = ACK;
-          reply[4] = reply[0] +  reply[1] +  reply[2] + reply[3];
-          reply_len = 5;
+          reply[2] = 0;
+          reply[3] = GENERIC_CODE;
+          reply[4] = ACK;
+          reply[5] = reply[0] +  reply[1] +  reply[2] + reply[3] + reply[4];
+          reply_len = 6;
           break;
           case OPTIMIZED_CODE: // Run optimized code
           running_state = OPTIMIZED;
@@ -319,10 +329,11 @@ void parse_packet(int package_len)
           // Send response
           reply[0] = (unsigned char)(packet[0]);
           reply[1] = CHANGE_CODE;
-          reply[2] = OPTIMIZED_CODE;
-          reply[3] = ACK;
-          reply[4] = reply[0] +  reply[1] +  reply[2] + reply[3];
-          reply_len = 5;
+          reply[2] = 0;
+          reply[3] = OPTIMIZED_CODE;
+          reply[4] = ACK;
+          reply[5] = reply[0] +  reply[1] +  reply[2] + reply[3] + reply[4];
+          reply_len = 6;
           break;
           default: // Not recognized mode
           reply[0] = NACK;
@@ -341,67 +352,83 @@ void parse_packet(int package_len)
       switch(comp){
         case CONNECTION: // Connection status
         reply[0] = (unsigned char)(packet[0]);
-        reply[1] = CONNECTION;
-        reply[2] = CONNECTION;
-        reply[3] = ACK;
-        reply[4] = reply[0] +  reply[1] +  reply[2] + reply[3];
-        reply_len = 5;
+        reply[1] = 0;
+        reply[2] = 0;
+        reply[3] = CONNECTION;
+        reply[4] = CONNECTION;
+        reply[5] = ACK;
+        reply[6] = reply[0] +  reply[1] +  reply[2] + reply[3] + reply[4] + reply[5];
+        reply_len = 7;
         break;
         case RELAY1: // Get relay1 status
         reply[0] = (unsigned char)(packet[0]);
-        reply[1] = RELAY1;
-        reply[2] = components[0].value;
-        reply[3] = ACK;
-        reply[4] = reply[0] +  reply[1] +  reply[2] + reply[3];
-        reply_len = 5;
+        reply[1] = 0;
+        reply[2] = 0;
+        reply[3] = RELAY1;
+        reply[4] = components[0].value;
+        reply[5] = ACK;
+        reply[6] = reply[0] +  reply[1] +  reply[2] + reply[3] + reply[4] + reply[5];
+        reply_len = 7;
         break;
         case RELAY2: // Get relay2 status
         reply[0] = (unsigned char)(packet[0]);
-        reply[1] = RELAY2;
-        reply[2] = components[1].value;
-        reply[3] = ACK;
-        reply[4] = reply[0] +  reply[1] +  reply[2] + reply[3];
-        reply_len = 5;
+        reply[1] = 0;
+        reply[2] = 0;
+        reply[3] = RELAY2;
+        reply[4] = components[1].value;
+        reply[5] = ACK;
+        reply[6] = reply[0] +  reply[1] +  reply[2] + reply[3] + reply[4] + reply[5];
+        reply_len = 7;
         break;
         case RELAY3: // Get relay3 status
         reply[0] = (unsigned char)(packet[0]);
-        reply[1] = RELAY3;
-        reply[2] = components[2].value;
-        reply[3] = ACK;
-        reply[4] = reply[0] +  reply[1] +  reply[2] + reply[3];
-        reply_len = 5;
+        reply[1] = 0;
+        reply[2] = 0;
+        reply[3] = RELAY3;
+        reply[4] = components[2].value;
+        reply[5] = ACK;
+        reply[6] = reply[0] +  reply[1] +  reply[2] + reply[3] + reply[4] + reply[5];
+        reply_len = 7;
         break;
         case RELAY4: // Get relay4 status
         reply[0] = (unsigned char)(packet[0]);
-        reply[1] = RELAY4;
-        reply[2] = components[3].value;
-        reply[3] = ACK;
-        reply[4] = reply[0] +  reply[1] +  reply[2] + reply[3];
-        reply_len = 5;
+        reply[1] = 0;
+        reply[2] = 0;
+        reply[3] = RELAY4;
+        reply[4] = components[3].value;
+        reply[5] = ACK;
+        reply[6] = reply[0] +  reply[1] +  reply[2] + reply[3] + reply[4] + reply[5];
+        reply_len = 7;
         break;
         case FUNC_MODE: // Get functional mode status
         reply[0] = (unsigned char)(packet[0]);
-        reply[1] = FUNC_MODE;
-        reply[2] = components[4].value;
-        reply[3] = ACK;
-        reply[4] = reply[0] +  reply[1] +  reply[2] + reply[3];
-        reply_len = 5;
+        reply[1] = 0;
+        reply[2] = 0;
+        reply[3] = FUNC_MODE;
+        reply[4] = components[4].value;
+        reply[5] = ACK;
+        reply[6] = reply[0] +  reply[1] +  reply[2] + reply[3] + reply[4] + reply[5];
+        reply_len = 7;
         break;
         case TOP_SWITCH: // Get top end switch status
         reply[0] = (unsigned char)(packet[0]);
-        reply[1] = TOP_SWITCH;
-        reply[2] = components[5].value;
-        reply[3] = ACK;
-        reply[4] = reply[0] +  reply[1] +  reply[2] + reply[3];
-        reply_len = 5;
+        reply[1] = 0;
+        reply[2] = 0;
+        reply[3] = TOP_SWITCH;
+        reply[4] = components[5].value;
+        reply[5] = ACK;
+        reply[6] = reply[0] +  reply[1] +  reply[2] + reply[3] + reply[4] + reply[5];
+        reply_len = 7;
         break;
         case BOTTOM_SWITCH: // Get bottom end switch status
         reply[0] = (unsigned char)(packet[0]);
-        reply[1] = BOTTOM_SWITCH;
-        reply[2] = components[6].value;
-        reply[3] = ACK;
-        reply[4] = reply[0] +  reply[1] +  reply[2] + reply[3];
-        reply_len = 5;
+        reply[1] = 0;
+        reply[2] = 0;
+        reply[3] = BOTTOM_SWITCH;
+        reply[4] = components[6].value;
+        reply[5] = ACK;
+        reply[6] = reply[0] +  reply[1] +  reply[2] + reply[3] + reply[4] + reply[5];
+        reply_len = 7;
         break;
         default: // If component was not recognized, send NACK
         reply[0] = NACK;
