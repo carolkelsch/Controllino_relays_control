@@ -1,5 +1,5 @@
 # Controllino_relays_control
-This project provides a code for Cotrollino MEGA or MAXI board (https://www.controllino.com/). It enables the relays to be controlled by Serial commands.
+This project provides a code for Cotrollino MINI board (https://www.controllino.com/). It enables the relays to be controlled by Serial commands.
 
 The Controllino will parse the packages packages with commands to controll the relays and read digital inputs states.
 
@@ -15,7 +15,7 @@ Open Arduino IDE, then go to **File -> Preferences** and add the URL "https://ra
 
 # Steps to run the code
 
-To flash the Controllino boards, you just need to configure which board are you using in the **Tools -> Board -> CONTROLLINO_Boards-avr** and select the COM port. Then just click on the flash buttom, and the code will be flashed to the board and after that be executed.
+To flash the Controllino boards, you just need to select the MINI board in the **Tools -> Board -> CONTROLLINO_Boards-avr** and select the COM port. Then just click on the flash buttom, and the code will be flashed to the board and after that be executed.
 
 # Communicating with the board
 
@@ -33,8 +33,8 @@ With the same USB connector to the Controllino board, you can open a terminal wi
 There are 2 different working modes.
 
 - **Generic**: it enables you to open and close individually each relay.
-- **Optimized**: this mode was optimized for a specific functionality. It configures the 4 relays as 2 pairs. The relays 1 and 3 are activated to enable a motor to roll in a direction and the relays 2 and 4 enables the motor to roll in the oposite direction.
-1 and 3 respond to the UP command, and 2 and 4 to the DOWN command. Optimized has also a time configuration. The time can be configured from 0 to 65535 (in milliseconds). If set to 0, the states of the relays are totally dependent of the commands. If you set the command UP, it will stay activated until you give the STOP or DOWN command.
+- **Optimized**: this mode was optimized for a specific functionality. It configures the 4 relays as 2 pairs. The relays 1 and 2 are activated to enable a motor to roll in a direction and the relays 3 and 4 enables the motor to roll in the oposite direction.
+1 and 2 respond to the UP command, and 3 and 4 to the DOWN command. Optimized has also a time configuration. The time can be configured from 0 to 65535 (in milliseconds). If set to 0, the states of the relays are totally dependent of the commands. If you set the command UP, it will stay activated until you give the STOP or DOWN command.
 If the time set is different than 0, then the commands UP and DOWN will activate the relays, and start a timer, with the specified time. When the timer is triggered the relays will automatically receive STOP command. If another UP or DOWN message is received before the timer get triggered, then the timer is restarted.
 
 # Setting commands for generic working mode

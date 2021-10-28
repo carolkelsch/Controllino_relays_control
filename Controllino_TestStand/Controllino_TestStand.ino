@@ -2,14 +2,14 @@
 #include "variables.h"
 
 /*
-  CONTROLLINO MEGA/MAXI - Control a motor with Relays 1, 2 3 and 4.
+  CONTROLLINO MINI - Control a motor with Relays 1, 2, 3 and 4.
 */
 
 // Pins configuration
-#define RELAY_1           CONTROLLINO_R1
-#define RELAY_2           CONTROLLINO_R2
-#define RELAY_3           CONTROLLINO_R3
-#define RELAY_4           CONTROLLINO_R4
+#define RELAY_1           CONTROLLINO_D0
+#define RELAY_2           CONTROLLINO_D1
+#define RELAY_3           CONTROLLINO_D2
+#define RELAY_4           CONTROLLINO_D3
 
 // Pins for switchs
 #define FUNC_MODE_PIN     CONTROLLINO_A0
@@ -43,7 +43,7 @@ void go_up()
   // Relays 1 and 3 are closed
   digitalWrite(RELAY_1, HIGH);
   components[0].value = CLOSE;
-  digitalWrite(RELAY_3, HIGH);
+  digitalWrite(RELAY_2, HIGH);
   components[2].value = CLOSE;
   moving_state = GOING_UP;
 }
@@ -58,7 +58,7 @@ void go_down()
     delay(1000);
   }
   // Relays 2 and 4 are closed
-  digitalWrite(RELAY_2, HIGH);
+  digitalWrite(RELAY_3, HIGH);
   components[1].value = CLOSE;
   digitalWrite(RELAY_4, HIGH);
   components[3].value = CLOSE;
